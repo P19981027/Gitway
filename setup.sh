@@ -15,11 +15,32 @@ apt install -y nodejs
 
 echo "===== 4/8 PM2 + Caddy ====="
 npm install -g pm2
-install -m 0755 -d /etc/apt/keyrings
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor --yes -o /etc/apt/keyrings/caddy-stable-archive-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list
-apt update
-apt install -y caddy
+rm -f /etc/apt/sources.list.d/caddy-stable.list
+rm -f /etc/apt/keyrings/caddy-stable-archive-keyring.gpg
+if ! command -v caddy >/dev/null 2>&1; then
+  curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_linux_amd64.tar.gz" -o /tmp/caddy.tar.gz
+  tar -xzf /tmp/caddy.tar.gz -C /usr/bin caddy
+  chmod +x /usr/bin/caddy
+  rm -f /tmp/caddy.tar.gz
+  mkdir -p /etc/caddy
+  cat > /etc/systemd/system/caddy.service <<'SVC_EOF'
+[Unit]
+Description=Caddy
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+Restart=always
+User=root
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+SVC_EOF
+  systemctl daemon-reload
+  systemctl enable caddy
+fi
 
 echo "===== 5/8 firewall ====="
 ufw --force reset
