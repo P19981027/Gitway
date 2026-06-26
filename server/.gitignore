@@ -1,0 +1,14 @@
+# Local overrides — never commit
+.env
+.env.local
+.env.production
+
+# DB
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+node_modules/
